@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block styles %}
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            background-color: #1d234e;
+            flex-direction: column;
+        }
+
+        * {
+            border: none !important;
+        }
+
+        .container-fluid {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+        }
+
+        .messages-box {
+            background-color: #1d234e;
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: 85vh;
+        }
+
+        .messages-list {
+            padding: 0;
+            list-style: none;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-text {
+            padding: 10px;
+            border-radius: 5px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .sent {
+            border-radius: 10px;
+            background-color: #e8ca7f;
+            align-self: flex-end;
+        }
+
+        .received {
+            border-radius: 10px;
+            background-color: #e49191;
+            align-self: flex-start;
+        }
+
+        .message-form {
+            display: flex;
+            padding: 10px;
+            background-color: #1d234e;
+        }
+
+        .message-input {
+            background-color: #1d234e;
+            flex: 1;
+            border-radius: 10px;
+        }
+
+        .btn-send {
+            border-radius: 0;
+        }
+
+        .chat-container {
+            background-color: #1d234e;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .card-header a {
+            color: white;
+            margin-left: 10px;
+        }
+
+        .list-group {
+            overflow-y: auto;
+            max-height: 85vh;
+            margin-top: 10px;
+        }
+
+        .card, .input-group {
+            background-color: #1d234e;
+        }
+
+        .list-group-item {
+            background-color: #1d234e;
+            border: none;
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+            width: 0;
+        }
+
+        .card-header {
+            background-color: 1d234e;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatroom-button {
+            border-radius: 5px;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            background-color: #011627;
+        }
+
+        .edit-chat-name-btn {
+            border-radius: 5px;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            background-color: #011627;
+        }
+
+        .current-chatroom {
+            background-color: #6877f0;
+        }
+
+        pre, code {
+            white-space: pre-wrap; /* Ensures whitespace and line breaks are preserved */
+            word-wrap: break-word; /* Ensures long lines break properly */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <aside class="col-md-3">
+            <div class="card">
+                <div class="card-header text-white d-flex justify-content-between align-items-center">
+                    <span><h3>Previous Chats</h3></span>
+                    <button id="create-chatroom-button" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for x in chat_rooms reversed %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <form action="{% url 'view_chat' x.id %}" method="post">
+                                    {% csrf_token %}
+                                    <div class="input-group">
+                                        <input type="text" name="chat_name" class="form-control"
+                                               value="{{ x.chat_name }}" style="display: none;">
+                                        <div class="input-group-append">
+                                            <button type="submit"
+                                                    class="chatroom-button {% if x.id == current_chatroom_id %}btn-primary current-chatroom{% else %}btn-secondary{% endif %}">
+                                                {{ x.chat_name }}
+                                            </button>
+                                            <button type="button"
+                                                    class="btn-sm edit-chat-name-btn {% if x.id == current_chatroom_id %}btn-primary current-chatroom{% else %}btn-secondary{% endif %}">
+                                                <i class="fa fa-pencil"></i>
+                                            </button>
+                                            <button type="submit" class="btn btn-sm btn-primary save-chat-name-btn"
+                                                    style="display: none;">
+                                                <i class="fa fa-save"> </i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <button class="btn btn-danger btn-sm delete-chatroom-button"
+                                        data-chatroom-id="{{ x.id }}">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </aside>
+        <main class="col-md-9 chat-container">
+            <div class="card flex-grow-1">
+                <div class="card-header text-white d-flex justify-content-between align-items-center">
+                    <span><h3>Athena AI, Welcome, {{ user.username }}</h3></span>
+                    {% if user.is_authenticated %}
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger"><i class="fa fa-sign-out"></i></button>
+                        </form>
+                    {% else %}
+                        <div>
+                            <a href="login" style="color: yellow;">Login</a>
+                            <a href="register" style="color: yellow;">Register</a>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-body messages-box">
+                    <ul class="messages-list">
+                        <li class="message received">
+                            <div class="message-text">
+                                <b>Athena AI</b>
+                                <div>Hi {{ user.username }}, I am Athena, you can ask me anything. I’m powered by AI, so
+                                    surprises and mistakes are possible.
+                                </div>
+                            </div>
+                        </li>
+                        {% for chat in chats %}
+                            <li class="message sent">
+                                <div class="message-text">
+                                    <b>You</b>
+                                    <div>{{ chat.message }}</div>
+                                </div>
+                            </li>
+                            <li class="message received">
+                                <div class="message-text">
+                                    <b>Athena AI</b>
+                                    <div>
+                                        <pre><code>{{ chat.response | safe }}</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <form class="message-form" method="post">
+                {% csrf_token %}
+                <div class="input-group mb-3">
+                    <input type="text" name="message" class="form-control message-input"
+                           placeholder="Type your message..." aria-label="Recipient's username"
+                           aria-describedby="button-addon2">
+                    <button class="btn btn-outline-secondary" type="submit" id="button-addon2">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('.messages-box').scrollTop = document.querySelector('.messages-box').scrollHeight;
+            const messagesList = document.querySelector('.messages-list');
+            const messageForm = document.querySelector('.message-form');
+            const messageInput = document.querySelector('.message-input');
+            const createChatroomButton = document.getElementById('create-chatroom-button');
+            const deleteChatroomButtons = document.querySelectorAll('.delete-chatroom-button');
+            const chatroomButton = document.querySelector('.current-chatroom'); // Assuming the chatroom button has the 'btn-primary' class
+            if (chatroomButton) {
+                chatroomButton.scrollIntoView({behavior: 'smooth'});
+            }
+
+            messageForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const message = messageInput.value.trim();
+                if (!message) return;
+
+                const messageItem = document.createElement('li');
+                messageItem.classList.add('message', 'sent');
+                messageItem.innerHTML = `
+            <div class="message-text">
+                <b>You</b>
+                <div>${message}</div>
+            </div>`;
+                messagesList.appendChild(messageItem);
+
+                messageInput.value = '';
+
+                fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'message': message
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const responseItem = document.createElement('li');
+                        responseItem.classList.add('message', 'received');
+
+                        responseItem.innerHTML = `
+                <div class="message-text">
+                    <b>Athena AI</b>
+                    <pre><code>${data.response}</code></pre>
+                </div>`;
+
+                        messagesList.appendChild(responseItem);
+                        document.querySelector('.messages-box').scrollTo({
+                            top: document.querySelector('.messages-box').scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    });
+            });
+
+            createChatroomButton.addEventListener('click', function () {
+                fetch('/chatbot/create_chatroom/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        }
+                    });
+            });
+
+            deleteChatroomButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const chatroomId = this.getAttribute('data-chatroom-id');
+                    fetch(`/chatbot/delete_chatroom/${chatroomId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    })
+                        .then(response => {
+                            if (response.redirected) {
+                                window.location.href = response.url;
+                            }
+                        });
+                });
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const editButtons = document.querySelectorAll('.edit-chat-name-btn');
+
+            editButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const listItem = this.closest('.list-group-item');
+                    const inputField = listItem.querySelector('input[name="chat_name"]');
+                    const saveButton = listItem.querySelector('.save-chat-name-btn');
+
+                    // Toggle input field and buttons visibility
+                    chatroomButtons = listItem.querySelectorAll('.chatroom-button');
+                    chatroomButtons.forEach(function (chatroomButton) {
+                        chatroomButton.style.display = 'none';
+                    });
+                    inputField.style.display = 'block';
+                    saveButton.style.display = 'inline-block';
+                    button.style.display = 'none';
+                });
+            });
+        });
+    </script>
+{% endblock %}
