@@ -26,8 +26,8 @@ Follow these steps to set up the Django ChatGPT Chatbot:
 1. Clone the repository:
 
 ```
-git clone https://github.com/yourusername/ChatGPT-WebApp.git
-cd "ChatGPT-WebApp"
+git clone https://github.com/VampAK1864/Athena-AI-ChatGPT.git
+cd "Athena-AI-ChatGPT"
 ```
 
 2. Install the required Python packages using pip:
